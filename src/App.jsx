@@ -3,10 +3,10 @@ import { useState, useMemo } from "react";
 // ─── Constants ────────────────────────────────────────────────────────────────
 const BOARD_T = 1.5;   // actual 2x4 thickness
 const BOARD_W = 3.5;   // actual 2x4 width
-const GAP_SIDE = 1;
-const GAP_HEAD = 2;
-const GAP_FRONT = 1;
-const GAP_BACK = 1;
+const GAP_SIDE  = 0.1875;  // 3/16" side clearance → bayW = toteW + 2×GAP_SIDE = 20.625"
+const GAP_HEAD  = 2;
+const GAP_FRONT = 0.125;   // 1/8" front clearance ↘ runner = toteL + GAP_FRONT + GAP_BACK = 30.5"
+const GAP_BACK  = 0.125;   // 1/8" back clearance  ↗
 const STD_LENGTHS = [96, 120, 144, 192];
 
 // ─── Price Table ──────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ function calculate(cols, rows, tote) {
 const C = {
   bg:"#0A0E14", surface:"#0F1923", border:"#1E2D3D", borderAlt:"#162030",
   blue:"#3B9EFF", blueDim:"#1D6FD8", blueDark:"#0F2744",
-  text:"#CBD5E1", textDim:"#475569", textMuted:"#2D3F52", white:"#E2EAF4", slate:"#334155",
+  text:"#CBD5E1", textDim:"#A8BDD0", textMuted:"#8BA4BC", white:"#E2EAF4", slate:"#334155",
   green:"#22C55E", greenDark:"#0D2A15", greenDim:"#166534",
   red:"#EF4444", redDark:"#2D0A0A", yellow:"#EAB308",
   runner:"#2DD4BF", runnerDim:"#0E7490",
@@ -528,7 +528,8 @@ export default function ToteRackConfigurator() {
 
   // Pricing
   const [priceOverride,    setPriceOverride]    = useState("");
-  const [pricePerBoard,    setPricePerBoard]     = useState(3.75);   // ← updated default
+  const [boardPrices,      setBoardPrices]      = useState({ 8:3.75, 10:4.75, 12:5.50, 16:7.00 });
+  const [lumberChoices,    setLumberChoices]    = useState({});  // cut label → chosen ft
   const [materialOverride, setMaterialOverride]  = useState("");
   const [hoursToSell,      setHoursToSell]       = useState(3);
   const [deliveryCharge,   setDeliveryCharge]    = useState(0);
@@ -545,13 +546,47 @@ export default function ToteRackConfigurator() {
   const dims = useMemo(() => calculate(cols, rows, tote), [cols, rows, tote]);
   const updateTote = (f, v) => setTote(p => ({ ...p, [f]: v }));
 
+  // Per-cut lumber analysis: all viable board lengths with cost comparison
+  const STD_FT = [8, 10, 12, 16];
+  const lumberAnalysis = useMemo(() => {
+    return dims.cuts.map(cut => {
+      const options = STD_FT.map(ft => {
+        const lenIn = ft * 12;
+        if (lenIn < cut.length) return null;
+        const piecesPerBoard = Math.floor(lenIn / cut.length);
+        const boardsNeeded   = Math.ceil(cut.qty / piecesPerBoard);
+        const price          = parseFloat(boardPrices[ft]) || 0;
+        const cost           = boardsNeeded * price;
+        return { ft, piecesPerBoard, boardsNeeded, price, cost };
+      }).filter(Boolean);
+      // cheapest option by total cost (tie-break: fewest boards)
+      const cheapest = options.reduce((best, o) =>
+        o.cost < best.cost || (o.cost === best.cost && o.boardsNeeded < best.boardsNeeded) ? o : best
+      , options[0]);
+      const chosenFt = lumberChoices[cut.label] ?? cheapest?.ft;
+      const chosen   = options.find(o => o.ft === chosenFt) || options[0];
+      return { ...cut, options, chosen, cheapest };
+    });
+  }, [dims.cuts, boardPrices, lumberChoices]);
+
+  // Order summary tally from chosen lengths
+  const lumberTally = useMemo(() => {
+    const tally = {};
+    lumberAnalysis.forEach(item => {
+      if (!item.chosen) return;
+      const k = item.chosen.ft;
+      tally[k] = (tally[k] || 0) + item.chosen.boardsNeeded;
+    });
+    return tally;
+  }, [lumberAnalysis]);
+
   const { price: tablePrice, exact: priceExact } = useMemo(() => lookupPrice(cols, rows), [cols, rows]);
   const salePrice    = priceOverride !== "" ? (parseFloat(priceOverride)||0) : tablePrice;
   const addonRevenue = (addWheels ? 40 : 0) + (addPlywood ? 100 : 0);
   const delivAmt     = parseFloat(deliveryCharge) || 0;
   const totalRevenue = salePrice + addonRevenue + delivAmt;
 
-  const estimatedMaterialCost = dims.lumber.totalBoards * (parseFloat(pricePerBoard)||0);
+  const estimatedMaterialCost = lumberAnalysis.reduce((s, item) => s + (item.chosen?.cost || 0), 0);
   const materialCost          = materialOverride !== "" ? (parseFloat(materialOverride)||0) : estimatedMaterialCost;
   const addonCost             = (addWheels ? (parseFloat(wheelCost)||0) : 0) + (addPlywood ? (parseFloat(plywoodCost)||0) : 0);
   const screwCostPerBuild     = (parseFloat(screwBoxCost)||0) / Math.max(1, parseInt(buildsPerBox)||1);
@@ -702,35 +737,55 @@ export default function ToteRackConfigurator() {
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             <div style={card}>
               <div style={cardHead}>LUMBER — SHOPPING LIST</div>
-              <table style={{ width:"100%", borderCollapse:"collapse", marginTop:12 }}>
-                <thead>
-                  <tr>{["PIECE","BOARD","PCS/BD","BOARDS"].map(h => (
-                    <th key={h} style={{ textAlign:"left", padding:"5px 8px", fontSize:9, color:C.textDim, letterSpacing:2, borderBottom:`1px solid ${C.border}` }}>{h}</th>
-                  ))}</tr>
-                </thead>
-                <tbody>
-                  {Object.values(dims.lumber.details).map((b, i) => (
-                    <tr key={i} style={{ borderBottom:`1px solid ${C.borderAlt}` }}>
-                      <td style={{ padding:"8px" }}>
-                        <div style={{ color: b.label==="Runners" ? C.runner : C.white, fontSize:12 }}>{b.label}</div>
-                        <div style={{ color:C.textMuted, fontSize:10 }}>@ {fmt(b.cutLength)} ea</div>
-                      </td>
-                      <td style={{ padding:"8px", color:C.text, fontSize:12 }}>2×4×{b.boardFt}'</td>
-                      <td style={{ padding:"8px", color:C.textDim, textAlign:"center" }}>{b.piecesPerBoard}</td>
-                      <td style={{ padding:"8px", color:C.blue, fontSize:20, fontWeight:"bold" }}>
-                        {b.boardsNeeded}<span style={{ fontSize:10, color:C.textDim, marginLeft:3 }}>bd</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div style={{ marginTop:12, display:"flex", flexDirection:"column", gap:12 }}>
+                {lumberAnalysis.map((item, i) => (
+                  <div key={i} style={{ borderBottom:`1px solid ${C.borderAlt}`, paddingBottom:12 }}>
+                    {/* Cut header */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:7 }}>
+                      <div>
+                        <span style={{ color:C.white, fontSize:13, fontWeight:"bold" }}>{item.label}</span>
+                        <span style={{ color:C.textMuted, fontSize:10, marginLeft:8 }}>{item.qty} pcs @ {fmt(item.length)} ea</span>
+                      </div>
+                      {item.chosen && (
+                        <span style={{ color:C.blue, fontSize:12, fontWeight:"bold" }}>
+                          {item.chosen.boardsNeeded} bd · {fmtMoney(item.chosen.cost)}
+                        </span>
+                      )}
+                    </div>
+                    {/* Board length options */}
+                    <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+                      {item.options.map(opt => {
+                        const isChosen   = opt.ft === item.chosen?.ft;
+                        const isCheapest = opt.ft === item.cheapest?.ft;
+                        return (
+                          <button key={opt.ft}
+                            onClick={() => setLumberChoices(p => ({ ...p, [item.label]: opt.ft }))}
+                            style={{
+                              padding:"6px 10px", borderRadius:6, cursor:"pointer", fontFamily:"monospace",
+                              border:`1px solid ${isChosen ? C.blue : C.border}`,
+                              background: isChosen ? C.blueDark : "#060D16",
+                              display:"flex", flexDirection:"column", alignItems:"center", gap:1,
+                            }}>
+                            <span style={{ fontSize:12, color: isChosen ? C.blue : C.text, fontWeight: isChosen ? "bold" : "normal" }}>
+                              {opt.ft}′ board
+                              {isCheapest && <span style={{ fontSize:9, color:C.green, marginLeft:4 }}>★</span>}
+                            </span>
+                            <span style={{ fontSize:10, color:C.textMuted }}>{opt.piecesPerBoard} pcs/bd</span>
+                            <span style={{ fontSize:11, color: isChosen ? C.white : C.textDim }}>{opt.boardsNeeded} bd · {fmtMoney(opt.cost)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Lumber order summary */}
             <div style={card}>
               <div style={cardHead}>ORDER SUMMARY</div>
               <div style={{ display:"flex", flexDirection:"column", gap:8, marginTop:12 }}>
-                {Object.entries(dims.lumber.tally).map(([ft, count]) => (
+                {Object.entries(lumberTally).sort(([a],[b])=>a-b).map(([ft, count]) => (
                   <div key={ft} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 12px", background:C.blueDark, border:`1px solid ${C.blueDim}`, borderRadius:6 }}>
                     <span style={{ color:C.text, fontSize:13 }}>2×4 × {ft}-foot boards</span>
                     <span style={{ color:C.blue, fontSize:22, fontWeight:"bold" }}>{count} <span style={{ fontSize:11, color:C.textDim }}>pcs</span></span>
@@ -885,10 +940,20 @@ export default function ToteRackConfigurator() {
               <div style={{ marginTop:14, display:"flex", flexDirection:"column", gap:10 }}>
 
                 <div style={{ padding:"12px 14px", background:"#060D16", border:`1px solid ${C.border}`, borderRadius:6 }}>
-                  <div style={{ fontSize:9, color:C.textDim, letterSpacing:2, marginBottom:10 }}>LUMBER ESTIMATE</div>
-                  <MoneyInput label="Your cost per 2×4 board" value={pricePerBoard} onChange={setPricePerBoard} highlight/>
+                  <div style={{ fontSize:9, color:C.textDim, letterSpacing:2, marginBottom:10 }}>LUMBER PRICES (per board)</div>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {STD_FT.map(ft => (
+                      <MoneyInput key={ft}
+                        label={`2×4 × ${ft}′ board`}
+                        value={boardPrices[ft]}
+                        onChange={v => setBoardPrices(p => ({ ...p, [ft]: v }))}
+                        highlight/>
+                    ))}
+                  </div>
                   <div style={{ display:"flex", justifyContent:"space-between", marginTop:10, paddingTop:8, borderTop:`1px solid ${C.borderAlt}` }}>
-                    <span style={{ fontSize:11, color:C.textDim }}>{dims.lumber.totalBoards} boards × ${parseFloat(pricePerBoard)||0}</span>
+                    <span style={{ fontSize:11, color:C.textDim }}>
+                      {lumberAnalysis.reduce((s,i) => s + (i.chosen?.boardsNeeded||0), 0)} boards total
+                    </span>
                     <span style={{ fontSize:15, color:C.blue, fontWeight:"bold" }}>{fmtMoney(estimatedMaterialCost)}</span>
                   </div>
                 </div>

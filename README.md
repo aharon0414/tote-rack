@@ -99,11 +99,11 @@ Vercel picks up the push automatically. Your phone and computer update the next 
 
 ## Tote Default Dimensions
 
-| Dimension | Default |
-|-----------|---------|
-| Length    | 30.25"  |
-| Width     | 20.25"  |
-| Height    | 14.125" |
+| Dimension | Default  |
+|-----------|----------|
+| Length    | 30.25"   |
+| Width     | 20.25"   |
+| Height    | 14.125"  |
 
 All adjustable in-app. All 2×4 lumber uses actual dimensions (1.5" × 3.5").
 
@@ -114,5 +114,5 @@ All adjustable in-app. All 2×4 lumber uses actual dimensions (1.5" × 3.5").
 - **Runners** run front-to-back (depth-wise), one pair per bay per row
 - **Tote lids** rest on top of the runners — totes hang from their lids
 - **2" headspace** above each tote (GAP_HEAD) for easy removal
-- **1" side clearance** per side (GAP_SIDE) for tote width
-- **1" front/back clearance** (GAP_FRONT / GAP_BACK) for tote depth
+- **3/16" side clearance** per side (GAP_SIDE) → bay width = 20.625"
+- **1/8" front/back clearance** (GAP_FRONT / GAP_BACK) → runner length = 30.5"
