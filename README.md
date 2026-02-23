@@ -97,6 +97,19 @@ Vercel picks up the push automatically. Your phone and computer update the next 
 
 ---
 
+## Default Lumber Prices
+
+| Board Length | Default Price |
+|--------------|---------------|
+| 2×4 × 8'     | $3.98         |
+| 2×4 × 10'    | $7.28         |
+| 2×4 × 12'    | $8.66         |
+| 2×4 × 16'    | $11.58        |
+
+All adjustable in-app on the Pricing tab.
+
+---
+
 ## Tote Default Dimensions
 
 | Dimension | Default  |

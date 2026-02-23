@@ -528,7 +528,7 @@ export default function ToteRackConfigurator() {
 
   // Pricing
   const [priceOverride,    setPriceOverride]    = useState("");
-  const [boardPrices,      setBoardPrices]      = useState({ 8:3.75, 10:4.75, 12:5.50, 16:7.00 });
+  const [boardPrices,      setBoardPrices]      = useState({ 8:3.98, 10:7.28, 12:8.66, 16:11.58 });
   const [lumberChoices,    setLumberChoices]    = useState({});  // cut label → chosen ft
   const [materialOverride, setMaterialOverride]  = useState("");
   const [hoursToSell,      setHoursToSell]       = useState(3);
