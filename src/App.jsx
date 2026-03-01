@@ -3,10 +3,8 @@ import { useState, useMemo } from "react";
 // ─── Constants ────────────────────────────────────────────────────────────────
 const BOARD_T = 1.5;   // actual 2x4 thickness
 const BOARD_W = 3.5;   // actual 2x4 width
-const GAP_SIDE  = 0.1875;  // 3/16" side clearance → bayW = toteW + 2×GAP_SIDE = 20.625"
-const GAP_HEAD  = 2;
-const GAP_FRONT = 0.125;   // 1/8" front clearance ↘ runner = toteL + GAP_FRONT + GAP_BACK = 30.5"
-const GAP_BACK  = 0.125;   // 1/8" back clearance  ↗
+const GAP_SIDE  = 0.375;   // 3/8" per side → 21" opening per bay (tote is 20.25")
+const GAP_HEAD  = 0;       // no intentional headspace — tote fits snug (matches physical build)
 const STD_LENGTHS = [96, 120, 144, 192];
 
 // ─── Price Table ──────────────────────────────────────────────────────────────
@@ -63,11 +61,11 @@ function calculate(cols, rows, tote) {
   const tH = parseFloat(tote.height) || 0;
 
   const bayW        = tW + 2 * GAP_SIDE;
-  const bayH        = tH + GAP_HEAD + BOARD_T;
-  const rackDepth   = tL + GAP_FRONT + GAP_BACK + 2 * BOARD_T;
-  const totalWidth  = cols * bayW + (cols + 1) * BOARD_T;
-  const totalHeight = rows * bayH + BOARD_T;
-  const runnerLen   = Math.max(1, rackDepth - 2 * BOARD_T);
+  const bayH        = tH + BOARD_T;                        // tote height + runner (no gap — snug fit)
+  const rackDepth   = tL;                                  // depth = tote length exactly (30.25")
+  const totalWidth  = cols * bayW + (cols + 1) * BOARD_T;  // (cols+1) posts × 1.5" + cols × 21" bays
+  const totalHeight = rows * bayH + 2 * BOARD_T;           // top rail + bottom rail
+  const runnerLen   = tL - 0.125;                          // full rack depth minus 1/8" reveal at each end
 
   const cuts = [
     { label: "Vertical Posts",         desc: "Front & back legs",                                           qty: 2*(cols+1), length: totalHeight, note: "Full height" },
@@ -312,8 +310,8 @@ function SideDiagram({ rows, dims }) {
   const py    = y => svgH - PAD_B - y * SCALE;
   const fs    = Math.max(7, Math.min(10, SCALE * 1.0));
 
-  const z0 = BOARD_T + GAP_FRONT;   // tote front edge (world depth)
-  const z1 = z0 + toteL;            // tote back edge
+  const z0 = BOARD_T;          // tote front edge flush with post inner face
+  const z1 = z0 + toteL;      // tote back edge
 
   return (
     <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width:"100%", maxWidth:500, borderRadius:6, overflow:"hidden" }}>
@@ -520,18 +518,41 @@ function ProfitBar({ profit, total }) {
 // ─── Main App ─────────────────────────────────────────────────────────────────
 let nextId = 1;
 
+const DEFAULT_COLS = 3;
+const DEFAULT_ROWS = 3;
+const DEFAULT_HOURS = 3;
+
+function loadPref(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function savePref(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+}
+
 export default function ToteRackConfigurator() {
-  const [cols, setCols] = useState(3);
-  const [rows, setRows] = useState(3);
+  const [cols, setColsRaw] = useState(() => loadPref("tr_cols", DEFAULT_COLS));
+  const [rows, setRowsRaw] = useState(() => loadPref("tr_rows", DEFAULT_ROWS));
   const [tote, setTote] = useState({ length:30.25, width:20.25, height:14.125 });
   const [tab,  setTab]  = useState("dims");
+
+  const setCols = v => { setColsRaw(v); savePref("tr_cols", v); };
+  const setRows = v => { setRowsRaw(v); savePref("tr_rows", v); };
+
+  const handleReset = () => {
+    setCols(DEFAULT_COLS);
+    setRows(DEFAULT_ROWS);
+    setHoursToSellRaw(DEFAULT_HOURS);
+    savePref("tr_hours", DEFAULT_HOURS);
+  };
 
   // Pricing
   const [priceOverride,    setPriceOverride]    = useState("");
   const [boardPrices,      setBoardPrices]      = useState({ 8:3.98, 10:7.28, 12:8.66, 16:11.58 });
   const [lumberChoices,    setLumberChoices]    = useState({});  // cut label → chosen ft
   const [materialOverride, setMaterialOverride]  = useState("");
-  const [hoursToSell,      setHoursToSell]       = useState(3);
+  const [hoursToSell, setHoursToSellRaw] = useState(() => loadPref("tr_hours", DEFAULT_HOURS));
+  const setHoursToSell = v => { setHoursToSellRaw(v); savePref("tr_hours", v); };
   const [deliveryCharge,   setDeliveryCharge]    = useState(0);
   const [addWheels,        setAddWheels]         = useState(false);
   const [wheelCost,        setWheelCost]         = useState(40);
@@ -621,9 +642,16 @@ export default function ToteRackConfigurator() {
           <div style={{ fontSize:18, fontWeight:"bold", color:C.white, letterSpacing:2, textTransform:"uppercase" }}>Tote Rack Builder</div>
           <div style={{ fontSize:9, color:C.textDim, letterSpacing:3 }}>2×4 LUMBER CONFIGURATOR · NAMPA, ID</div>
         </div>
-        <div style={{ marginLeft:"auto", textAlign:"right" }}>
-          <div style={{ fontSize:9, color:C.textMuted, letterSpacing:2 }}>TOTES</div>
-          <div style={{ fontSize:22, color:C.blue, fontWeight:"bold" }}>{cols*rows}</div>
+        <div style={{ marginLeft:"auto", textAlign:"right", display:"flex", flexDirection:"column", alignItems:"flex-end", gap:6 }}>
+          <div>
+            <div style={{ fontSize:9, color:C.textMuted, letterSpacing:2 }}>TOTES</div>
+            <div style={{ fontSize:22, color:C.blue, fontWeight:"bold" }}>{cols*rows}</div>
+          </div>
+          <button onClick={handleReset} style={{
+            background:"none", border:`1px solid ${C.border}`, color:C.textDim,
+            fontSize:9, letterSpacing:2, padding:"4px 8px", borderRadius:4,
+            cursor:"pointer", fontFamily:"monospace",
+          }}>↺ RESET</button>
         </div>
       </div>
 
@@ -678,7 +706,6 @@ export default function ToteRackConfigurator() {
                   [null],
                   ["Side clearance",       `${GAP_SIDE}" per side`,     "totes won't bind"],
                   ["Top clearance",        `${GAP_HEAD}"`,              "lid lifts freely"],
-                  ["Front/back clear",     `${GAP_FRONT}" / ${GAP_BACK}"`, "slide in easily"],
                 ].map((row, i) => row[0] === null
                   ? <tr key={i}><td colSpan={3}><div style={{ height:1, background:C.borderAlt, margin:"4px 0" }}/></td></tr>
                   : (<tr key={i} style={{ borderBottom:`1px solid ${C.borderAlt}` }}>

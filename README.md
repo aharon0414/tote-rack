@@ -126,6 +126,14 @@ All adjustable in-app. All 2×4 lumber uses actual dimensions (1.5" × 3.5").
 
 - **Runners** run front-to-back (depth-wise), one pair per bay per row
 - **Tote lids** rest on top of the runners — totes hang from their lids
-- **2" headspace** above each tote (GAP_HEAD) for easy removal
+- **No headspace gap** — totes fit snug (matches physical build)
 - **3/16" side clearance** per side (GAP_SIDE) → bay width = 20.625"
-- **1/8" front/back clearance** (GAP_FRONT / GAP_BACK) → runner length = 30.5"
+- **Runner length**: tote length − 1/8" = **30.125"** (fixed regardless of rack size)
+- **Height formula**: `rows × (toteH + 1.5") + 2 × 1.5"` (top + bottom rails)
+- **Verified**: 2-row rack = 34.25" (matches physical 34 3/8" within 1/8" tape measure tolerance)
+
+---
+
+## Persistence
+
+Columns, rows, and build time are saved automatically to `localStorage` and restored on every app open. Lumber prices always load from hardcoded defaults and are never persisted. Use the **↺ RESET** button in the header to restore cols=3, rows=3, hours=3.
