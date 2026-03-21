@@ -1,10 +1,13 @@
 import { useState, useMemo } from "react";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const BOARD_T = 1.5;   // actual 2x4 thickness
-const BOARD_W = 3.5;   // actual 2x4 width
-const GAP_SIDE  = 0.375;   // 3/8" per side → 21" opening per bay (tote is 20.25")
-const GAP_HEAD  = 0;       // no intentional headspace — tote fits snug (matches physical build)
+const BOARD_T     = 1.5;   // actual 2x4 thickness
+const BOARD_W     = 3.5;   // actual 2x4 width
+const GAP_SIDE    = 0.25;  // 1/4" per side → 20.625" bay opening (tote is 20.125")
+const GAP_HEAD    = 0;
+// 27-gallon Sterilite tote lid properties (fixed — drives height formula)
+const LID_THICK   = 1.875; // lid rim thickness — how far lid protrudes above runner
+const LIP_OVHG    = 1.375; // lip overhang per side — how far lip extends past tote body
 const STD_LENGTHS = [96, 120, 144, 192];
 
 // ─── Price Table ──────────────────────────────────────────────────────────────
@@ -61,11 +64,11 @@ function calculate(cols, rows, tote) {
   const tH = parseFloat(tote.height) || 0;
 
   const bayW        = tW + 2 * GAP_SIDE;
-  const bayH        = tH + BOARD_T;                        // tote height + runner (no gap — snug fit)
-  const rackDepth   = tL;                                  // depth = tote length exactly (30.25")
-  const totalWidth  = cols * bayW + (cols + 1) * BOARD_T;  // (cols+1) posts × 1.5" + cols × 21" bays
-  const totalHeight = rows * bayH + 2 * BOARD_T;           // top rail + bottom rail
-  const runnerLen   = tL - 0.125;                          // full rack depth minus 1/8" reveal at each end
+  const bayH        = tH - LID_THICK + BOARD_T + LIP_OVHG;  // body below runner + runner + lid above
+  const rackDepth   = tL;
+  const totalWidth  = cols * bayW + (cols + 1) * BOARD_T;
+  const totalHeight = rows * bayH + LID_THICK + LIP_OVHG + BOARD_T / 2; // matches Ana White exactly
+  const runnerLen   = tL;
 
   const cuts = [
     { label: "Vertical Posts",         desc: "Front & back legs",                                           qty: 2*(cols+1), length: totalHeight, note: "Full height" },
@@ -533,7 +536,7 @@ function savePref(key, value) {
 export default function ToteRackConfigurator() {
   const [cols, setColsRaw] = useState(() => loadPref("tr_cols", DEFAULT_COLS));
   const [rows, setRowsRaw] = useState(() => loadPref("tr_rows", DEFAULT_ROWS));
-  const [tote, setTote] = useState({ length:30.25, width:20.25, height:14.125 });
+  const [tote, setTote] = useState({ length:30.125, width:20.125, height:14.125 });
   const [tab,  setTab]  = useState("dims");
 
   const setCols = v => { setColsRaw(v); savePref("tr_cols", v); };

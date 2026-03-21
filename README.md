@@ -112,11 +112,15 @@ All adjustable in-app on the Pricing tab.
 
 ## Tote Default Dimensions
 
-| Dimension | Default  |
-|-----------|----------|
-| Length    | 30.25"   |
-| Width     | 20.25"   |
-| Height    | 14.125"  |
+Verified against Ana White tote rack configurator (27-gallon Sterilite tote):
+
+| Dimension              | Value    |
+|------------------------|----------|
+| Length (lid on)        | 30.125"  |
+| Width (lid on)         | 20.125"  |
+| Height (lid on)        | 14.125"  |
+| Lid rim thickness      | 1.875"   |
+| Lip overhang (per side)| 1.375"   |
 
 All adjustable in-app. All 2×4 lumber uses actual dimensions (1.5" × 3.5").
 
@@ -124,13 +128,20 @@ All adjustable in-app. All 2×4 lumber uses actual dimensions (1.5" × 3.5").
 
 ## Rack Geometry Notes
 
-- **Runners** run front-to-back (depth-wise), one pair per bay per row
-- **Tote lids** rest on top of the runners — totes hang from their lids
-- **No headspace gap** — totes fit snug (matches physical build)
-- **3/16" side clearance** per side (GAP_SIDE) → bay width = 20.625"
-- **Runner length**: tote length − 1/8" = **30.125"** (fixed regardless of rack size)
-- **Height formula**: `rows × (toteH + 1.5") + 2 × 1.5"` (top + bottom rails)
-- **Verified**: 2-row rack = 34.25" (matches physical 34 3/8" within 1/8" tape measure tolerance)
+Formulas verified to match Ana White tote rack configurator output exactly:
+
+- **Bay opening**: toteWidth + 2 × 0.25" = **20.625"** per bay
+- **Runner length**: toteLength = **30.125"** (spans full rack depth)
+- **Rack depth**: toteLength = **30.125"**
+- **Bay height**: (toteHeight − lidThick) + runner + lipOverhang = **15.125"** per row
+  - Body hanging below runner: 14.125 − 1.875 = 12.25"
+  - Runner: 1.5"
+  - Lid above runner: 1.375"
+- **Total height**: rows × 15.125" + lidThick + lipOverhang + 0.75"
+- **Total width**: cols × 20.625" + (cols+1) × 1.5" (posts)
+- **Leg length**: totalHeight − 3"
+- **Verified (3×3)**: 49.375" H × 67.875" W × 30.125" D ✓
+- **Verified (5×5)**: 79.625" H × 112.125" W × 30.125" D ✓
 
 ---
 
