@@ -70,11 +70,13 @@ function calculate(cols, rows, tote) {
   const totalHeight = rows * bayH + LID_THICK + LIP_OVHG + BOARD_T / 2; // matches Ana White exactly
   const runnerLen   = tL;
 
+  const postLen  = totalHeight - 2 * BOARD_T;  // legs fit between top & bottom rails
+
   const cuts = [
-    { label: "Vertical Posts",         desc: "Front & back legs",                                           qty: 2*(cols+1), length: totalHeight, note: "Full height" },
-    { label: "Front Horizontal Rails", desc: "Top & bottom frame rails, front face",                        qty: 2,          length: totalWidth,  note: "Full width" },
-    { label: "Back Horizontal Rails",  desc: "Top & bottom frame rails, back face",                         qty: 2,          length: totalWidth,  note: "Full width" },
-    { label: "Runners",                desc: "Run front-to-back per bay — tote lips rest on these",         qty: 2*cols*rows, length: runnerLen,  note: "1 per outer post face, 2 per inner" },
+    { label: "Vertical Posts",         desc: "Front & back legs",                                       qty: 2*(cols+1), length: postLen,      note: "Between rails" },
+    { label: "Front Horizontal Rails", desc: "Top & bottom frame rails, front face",                    qty: 2,          length: totalWidth,   note: "Full width" },
+    { label: "Back Horizontal Rails",  desc: "Top & bottom frame rails, back face",                     qty: 2,          length: totalWidth,   note: "Full width" },
+    { label: "Runners",                desc: "Run front-to-back per bay — tote lips rest on these",     qty: 2*cols*rows, length: runnerLen,   note: "1 per outer post face, 2 per inner" },
   ];
 
   const lumberDetails = {};
@@ -95,7 +97,7 @@ function calculate(cols, rows, tote) {
   const totalLinFt  = cuts.reduce((s, c) => s + c.qty * c.length, 0) / 12;
   const boardFeet   = cuts.reduce((s, c) => s + c.qty * (2 * 4 * (c.length / 12)) / 12, 0);
 
-  return { totalWidth, totalHeight, rackDepth, bayW, bayH, runnerLen,
+  return { totalWidth, totalHeight, rackDepth, bayW, bayH, runnerLen, postLen,
            cuts, lumber: { details: lumberDetails, tally: lumberTally, totalBoards },
            totalLinFt, boardFeet, toteL: tL, toteH: tH };
 }
